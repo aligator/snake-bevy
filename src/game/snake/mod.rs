@@ -14,10 +14,6 @@ impl Plugin for SnakePlugin {
             .add_systems(
                 Update,
                 (systems::snake_movement,).run_if(in_state(AppState::Game)),
-            )
-            .add_systems(
-                PostUpdate,
-                (systems::position_translation, systems::size_scaling),
             );
         //.add_systems(OnExit(AppState::Game), despawn_snake);
     }
