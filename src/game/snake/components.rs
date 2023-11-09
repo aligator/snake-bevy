@@ -23,3 +23,6 @@ impl Direction {
 pub struct SnakeHead {
     pub direction: Direction,
 }
+
+#[derive(Component)]
+pub struct SnakeSegment;
