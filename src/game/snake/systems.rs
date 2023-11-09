@@ -16,27 +16,50 @@ pub fn spawn_snake(mut commands: Commands) {
             },
             ..default()
         })
-        .insert(components::SnakeHead)
+        .insert(components::SnakeHead {
+            direction: components::Direction::Up,
+        })
         .insert(game::components::Position { x: 3, y: 3 })
         .insert(game::components::Size::square(0.8));
 }
 
-pub fn snake_movement(
+pub fn snake_movement_input(
     keyboard_input: Res<Input<KeyCode>>,
-    mut head_positions: Query<&mut game::components::Position, With<components::SnakeHead>>,
+    mut head_query: Query<&mut components::SnakeHead>,
 ) {
-    for mut position in head_positions.iter_mut() {
-        if keyboard_input.pressed(KeyCode::Left) {
+    let mut head = head_query.single_mut();
+    let dir: components::Direction = if keyboard_input.pressed(KeyCode::Left) {
+        components::Direction::Left
+    } else if keyboard_input.pressed(KeyCode::Right) {
+        components::Direction::Right
+    } else if keyboard_input.pressed(KeyCode::Up) {
+        components::Direction::Up
+    } else if keyboard_input.pressed(KeyCode::Down) {
+        components::Direction::Down
+    } else {
+        head.direction
+    };
+    if dir != head.direction.opposite() {
+        head.direction = dir;
+    }
+}
+
+pub fn snake_movement(
+    mut head_query: Query<(&mut game::components::Position, &components::SnakeHead)>,
+) {
+    let (mut position, head) = head_query.single_mut();
+    match &head.direction {
+        components::Direction::Left => {
             position.x -= 1;
         }
-        if keyboard_input.pressed(KeyCode::Right) {
+        components::Direction::Down => {
+            position.y -= 1;
+        }
+        components::Direction::Right => {
             position.x += 1;
         }
-        if keyboard_input.pressed(KeyCode::Up) {
+        components::Direction::Up => {
             position.y += 1;
-        }
-        if keyboard_input.pressed(KeyCode::Down) {
-            position.y -= 1;
         }
     }
 }
