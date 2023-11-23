@@ -10,5 +10,6 @@ pub mod main_menu;
 fn main() {
     App::new()
         .add_plugins((AppPlugin, MainMenuPlugin, GamePlugin))
+        .add_systems(Update, bevy::window::close_on_esc)
         .run()
 }

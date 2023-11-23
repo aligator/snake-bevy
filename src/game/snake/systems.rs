@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
-use super::*;
-use crate::game;
+use super::{resources::SnakeSegments, *};
+use crate::game::{self, components::Position};
 
 pub fn spawn_snake(mut commands: Commands, mut segments: ResMut<resources::SnakeSegments>) {
     *segments = resources::SnakeSegments(vec![
@@ -49,21 +49,38 @@ pub fn snake_movement_input(
 }
 
 pub fn snake_movement(
-    mut head_query: Query<(&mut game::components::Position, &components::SnakeHead)>,
+    segments: ResMut<SnakeSegments>,
+    mut head_query: Query<(Entity, &components::SnakeHead)>,
+    mut positions_query: Query<&mut Position>,
 ) {
-    let (mut position, head) = head_query.single_mut();
+    let (head_entity, head) = head_query.single_mut();
+    let segment_positions = segments
+        .iter()
+        .map(|e| *positions_query.get_mut(*e).unwrap())
+        .collect::<Vec<Position>>();
+
+    let mut head_position = positions_query.get_mut(head_entity).unwrap();
+
     match &head.direction {
         components::Direction::Left => {
-            position.x -= 1;
-        }
-        components::Direction::Down => {
-            position.y -= 1;
+            head_position.x -= 1;
         }
         components::Direction::Right => {
-            position.x += 1;
+            head_position.x += 1;
         }
         components::Direction::Up => {
-            position.y += 1;
+            head_position.y += 1;
+        }
+        components::Direction::Down => {
+            head_position.y -= 1;
         }
     }
+
+    // This effectively sets the position of each segment to the segment in front of it.
+    segment_positions
+        .iter()
+        .zip(segments.iter().skip(1))
+        .for_each(|(position, segment)| {
+            *positions_query.get_mut(*segment).unwrap() = *position;
+        })
 }
