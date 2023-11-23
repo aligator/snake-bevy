@@ -4,7 +4,7 @@ use bevy::{prelude::*, time::common_conditions::on_timer};
 
 use crate::app::AppState;
 
-mod components;
+pub mod components;
 mod constants;
 mod systems;
 

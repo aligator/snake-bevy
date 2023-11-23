@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 
+use super::food;
 use super::{resources::SnakeSegments, *};
 use crate::game::{self, components::Position};
 
@@ -50,6 +51,7 @@ pub fn snake_movement_input(
 
 pub fn snake_movement(
     segments: ResMut<SnakeSegments>,
+    mut last_tail_position: ResMut<resources::LastTailPosition>,
     mut head_query: Query<(Entity, &components::SnakeHead)>,
     mut positions_query: Query<&mut Position>,
 ) {
@@ -82,5 +84,32 @@ pub fn snake_movement(
         .zip(segments.iter().skip(1))
         .for_each(|(position, segment)| {
             *positions_query.get_mut(*segment).unwrap() = *position;
-        })
+        });
+    *last_tail_position = resources::LastTailPosition(Some(*segment_positions.last().unwrap()));
+}
+
+pub fn snake_eating(
+    mut commands: Commands,
+    mut growth_writer: EventWriter<events::GrowthEvent>,
+    food_positions_query: Query<(Entity, &Position), With<food::components::Food>>,
+    head_positions_query: Query<&Position, With<components::SnakeHead>>,
+) {
+    let head_position = head_positions_query.get_single().unwrap();
+    for (entity, food_position) in food_positions_query.iter() {
+        if food_position == head_position {
+            commands.entity(entity).despawn();
+            growth_writer.send(events::GrowthEvent);
+        }
+    }
+}
+
+pub fn snake_growth(
+    commands: Commands,
+    last_tail_position: Res<resources::LastTailPosition>,
+    mut segments: ResMut<resources::SnakeSegments>,
+    mut growth_reader: EventReader<events::GrowthEvent>,
+) {
+    if growth_reader.read().next().is_some() {
+        segments.push(spawn_segment(commands, last_tail_position.0.unwrap()));
+    }
 }

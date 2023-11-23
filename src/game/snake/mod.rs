@@ -5,8 +5,11 @@ use bevy::{prelude::*, time::common_conditions::on_timer};
 use crate::app::AppState;
 use crate::game;
 
+use super::food;
+
 mod components;
 mod constants;
+mod events;
 mod resources;
 mod systems;
 
@@ -14,6 +17,8 @@ mod systems;
 enum SnakeSet {
     Input,
     Movement,
+    Action,
+    Mutate,
 }
 
 pub struct SnakePlugin;
@@ -21,6 +26,8 @@ pub struct SnakePlugin;
 impl Plugin for SnakePlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(resources::SnakeSegments::default())
+            .insert_resource(resources::LastTailPosition::default())
+            .add_event::<events::GrowthEvent>()
             .add_systems(OnEnter(AppState::Game), systems::spawn_snake)
             .add_systems(
                 Update,
@@ -31,6 +38,12 @@ impl Plugin for SnakePlugin {
                     systems::snake_movement
                         .in_set(SnakeSet::Movement)
                         .run_if(on_timer(Duration::from_millis(150))),
+                    (
+                        systems::snake_eating,
+                        systems::snake_growth.after(systems::snake_eating),
+                    )
+                        .in_set(SnakeSet::Action)
+                        .after(SnakeSet::Movement),
                 )
                     .run_if(in_state(AppState::Game)),
             );
