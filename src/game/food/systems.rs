@@ -22,3 +22,9 @@ pub fn food_spawner(mut commands: Commands) {
         })
         .insert(game::components::Size::square(0.8));
 }
+
+pub fn despawn_food(mut commands: Commands, food_query: Query<Entity, With<components::Food>>) {
+    for food in food_query.iter() {
+        commands.entity(food).despawn_recursive();
+    }
+}

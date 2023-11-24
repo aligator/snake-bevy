@@ -3,6 +3,7 @@ use std::time::Duration;
 use bevy::{prelude::*, time::common_conditions::on_timer};
 
 use crate::app::AppState;
+use crate::game::food::systems::despawn_food;
 
 pub mod components;
 mod constants;
@@ -17,7 +18,7 @@ impl Plugin for FoodPlugin {
             (systems::food_spawner)
                 .run_if(in_state(AppState::Game))
                 .run_if(on_timer(Duration::from_secs(1))),
-        );
-        //.add_systems(OnExit(AppState::Game), despawn_snake);
+        )
+            .add_systems(OnExit(AppState::Game), despawn_food);
     }
 }

@@ -1,8 +1,9 @@
 use bevy::prelude::*;
 
-use super::food;
-use super::{resources::SnakeSegments, *};
-use crate::game::{self, components::Position};
+use super::{constants, food, resources, spawn_segment, events};
+use crate::game;
+use super::components;
+use crate::game::events::GameOverEvent;
 
 pub fn spawn_snake(mut commands: Commands, mut segments: ResMut<resources::SnakeSegments>) {
     *segments = resources::SnakeSegments(vec![
@@ -28,6 +29,12 @@ pub fn spawn_snake(mut commands: Commands, mut segments: ResMut<resources::Snake
     ]);
 }
 
+pub fn despawn_snake(mut commands: Commands, segments: Res<resources::SnakeSegments>) {
+    for segment in segments.iter() {
+        commands.entity(*segment).despawn_recursive();
+    }
+}
+
 pub fn snake_movement_input(
     keyboard_input: Res<Input<KeyCode>>,
     mut head_query: Query<&mut components::SnakeHead>,
@@ -50,16 +57,17 @@ pub fn snake_movement_input(
 }
 
 pub fn snake_movement(
-    segments: ResMut<SnakeSegments>,
+    segments: ResMut<resources::SnakeSegments>,
     mut last_tail_position: ResMut<resources::LastTailPosition>,
+    mut game_over_event: EventWriter<game::events::GameOverEvent>,
     mut head_query: Query<(Entity, &components::SnakeHead)>,
-    mut positions_query: Query<&mut Position>,
+    mut positions_query: Query<&mut game::components::Position>,
 ) {
     let (head_entity, head) = head_query.single_mut();
     let segment_positions = segments
         .iter()
         .map(|e| *positions_query.get_mut(*e).unwrap())
-        .collect::<Vec<Position>>();
+        .collect::<Vec<game::components::Position>>();
 
     let mut head_position = positions_query.get_mut(head_entity).unwrap();
 
@@ -78,6 +86,18 @@ pub fn snake_movement(
         }
     }
 
+    if head_position.x < 0
+        || head_position.y < 0
+        || head_position.x as u32 >= game::constants::ARENA_WIDTH
+        || head_position.y as u32 >= game::constants::ARENA_HEIGHT
+    {
+        game_over_event.send(GameOverEvent);
+    }
+
+    if segment_positions.contains(&head_position) {
+        game_over_event.send(GameOverEvent);
+    }
+
     // This effectively sets the position of each segment to the segment in front of it.
     segment_positions
         .iter()
@@ -91,8 +111,8 @@ pub fn snake_movement(
 pub fn snake_eating(
     mut commands: Commands,
     mut growth_writer: EventWriter<events::GrowthEvent>,
-    food_positions_query: Query<(Entity, &Position), With<food::components::Food>>,
-    head_positions_query: Query<&Position, With<components::SnakeHead>>,
+    food_positions_query: Query<(Entity, &game::components::Position), With<food::components::Food>>,
+    head_positions_query: Query<&game::components::Position, With<components::SnakeHead>>,
 ) {
     let head_position = head_positions_query.get_single().unwrap();
     for (entity, food_position) in food_positions_query.iter() {

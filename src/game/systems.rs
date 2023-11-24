@@ -1,4 +1,6 @@
 use bevy::{prelude::*, window::PrimaryWindow};
+use crate::app::AppState;
+use crate::game::events::GameOverEvent;
 
 use super::{components, constants};
 
@@ -41,5 +43,14 @@ pub fn position_translation(
             ),
             0.0,
         );
+    }
+}
+
+pub fn game_over(
+    mut reader: EventReader<GameOverEvent>,
+    mut app_state_next_state: ResMut<NextState<AppState>>,
+) {
+    if reader.read().next().is_some() {
+       app_state_next_state.set(AppState::MainMenu);
     }
 }
